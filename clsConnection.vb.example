@@ -1,0 +1,227 @@
+Imports System.Runtime.InteropServices
+
+Public Class clsConnection
+
+#Region "Private (Local) variables"
+    Private mstrComputername As String
+    Private mstrStatus As String
+#End Region
+
+#Region "Structures"
+    Public Structure OpenFiles
+        Dim strUsername As String
+        Dim strPath As String
+    End Structure
+
+    Public Structure OpenSessions
+        Dim strUsername As String
+        Dim strComputername As String
+        Dim intIdleTime As Int16
+        Dim strConnectTime As String
+    End Structure
+#End Region
+
+#Region "Declares"
+
+    'typedef struct _FILE_INFO_3 {
+    '  DWORD fi3_id;
+    '  DWORD fi3_permissions;
+    '  DWORD fi3_num_locks;
+    '  LPWSTR fi3_pathname;
+    '  LPWSTR fi3_username;
+    '} FILE_INFO_3, *PFILE_INFO_3, *LPFILE_INFO_3;
+
+    <StructLayout(LayoutKind.Sequential, CharSet:=CharSet.Auto, Pack:=4)> _
+    Private Structure FILE_INFO_3
+        Dim fi3_id As Integer
+        Dim fi3_permission As Integer
+        Dim fi3_num_locks As Integer
+        Dim fi3_pathname As String
+        Dim fi3_username As String
+    End Structure
+
+    'NET_API_STATUS NetFileEnum(
+    '  LPWSTR servername,
+    '  LPWSTR basepath,
+    '  LPWSTR username,
+    '  DWORD level,
+    '  LPBYTE* bufptr,
+    '  DWORD prefmaxlen,
+    '  LPDWORD entriesread,
+    '  LPDWORD totalentries,
+    '  PDWORD_PTR resume_handle
+    ');
+
+    Private Declare Auto Function NetFileEnum Lib "Netapi32" ( _
+        ByVal servername As String, _
+        ByVal basepath As String, _
+        ByVal username As String, _
+        ByVal level As Integer, _
+        ByRef bufptr As IntPtr, _
+        ByVal prefmaxlen As Integer, _
+        ByRef entriesread As Integer, _
+        ByRef totalentries As Integer, _
+        ByVal resume_handle As IntPtr) _
+    As Integer
+#End Region
+
+#Region "Constants"
+    Private Const MAX_PREFERRED_LENGTH As Integer = -1
+    Private Const PERM_FILE_READ As Integer = &H1
+    Private Const PERM_FILE_WRITE As Integer = &H2
+    Private Const PERM_FILE_CREATE As Integer = &H4
+    Private Const ACCESS_EXEC As Integer = &H8
+    Private Const ACCESS_DELETE As Integer = &H10
+    Private Const ACCESS_ATRIB As Integer = &H20
+    Private Const ACCESS_PERM As Integer = &H40
+#End Region
+
+#Region "Properties"
+    Public Property Computername() As String
+        Set(ByVal Value As String)
+            mstrComputername = Value
+        End Set
+
+        Get
+            Return mstrComputername
+        End Get
+    End Property
+
+    Public ReadOnly Property Status() As String
+        Get
+            Return mstrStatus
+        End Get
+    End Property
+
+#End Region
+
+    Public Function GetConnections() As OpenSessions()
+        Dim objFSOps As ActiveDs.IADsFileServiceOperations
+        Dim objSession As ActiveDs.IADsSession
+        Dim lngConnectionMinutes As Long
+        Dim datConnected As Date
+        'Dim oComputerNode As System.Windows.Forms.TreeNode
+        'Dim oUserNode As System.Windows.Forms.TreeNode
+        'Dim oSessionNode As System.Windows.Forms.TreeNode
+
+        Dim strUsername As String
+        Dim strComputername As String
+
+        Dim i As Int16
+
+        Dim Sessions() As OpenSessions
+
+        If mstrComputername = "" Then
+            mstrStatus = "Error - no computername."
+            Exit Function
+        End If
+
+        'oForm.tvwConnections.Nodes.Clear()
+
+        Try
+            objFSOps = GetObject("WinNT://" & mstrComputername & "/lanmanserver")
+
+            For Each objSession In objFSOps.Sessions
+                Try '  Placed this routine inside a Try ... End try because a user may disconnect a session whilst enumeration is occuring
+                    lngConnectionMinutes = CLng(objSession.ConnectTime)
+                    datConnected = DateAdd(DateInterval.Minute, -CDbl(lngConnectionMinutes), Now)
+
+                    If objSession.Computer <> "" Then
+                        strComputername = objSession.Computer
+                    Else
+                        strComputername = "<No Computername>"
+                    End If
+
+                    If objSession.User <> "" Then
+                        strUsername = objSession.User
+                    Else
+                        strUsername = "REDACTED"
+                    End If
+
+                    ReDim Preserve Sessions(i)
+
+                    Sessions(i).strComputername = strComputername
+                    Sessions(i).strUsername = strUsername
+                    Sessions(i).strConnectTime = CStr(datConnected)
+                    Sessions(i).intIdleTime = objSession.IdleTime
+
+                    i = i + 1
+
+                    'If oForm.radComputer.Checked Then
+                    'If strComputername <> "" Then
+                    'oComputerNode = oForm.tvwConnections.Nodes.Add(strComputername)
+                    'Else
+                    '    oComputerNode = oForm.tvwConnections.Nodes.Add("<No Computername>")
+                    'End If
+
+                    'If strUsername <> "" Then
+                    'oUserNode = oComputerNode.Nodes.Add(objSession.User)
+                    'Else
+                    '    oUserNode = oComputerNode.Nodes.Add("<No Username>")
+                    'End If
+
+                    'oSessionNode = oUserNode.Nodes.Add("Connected since " & datConnected)
+                    'oSessionNode = oUserNode.Nodes.Add("Minutes Idle: " & objSession.IdleTime)
+                    'Else
+                    'If strUsername <> "" Then
+                    'oUserNode = oForm.tvwConnections.Nodes.Add(UCase(objSession.User))
+                    'Else
+                    '    oUserNode = oForm.tvwConnections.Nodes.Add("<No Username>")
+                    'End If
+
+                    'If strComputername <> "" Then
+                    'oComputerNode = oUserNode.Nodes.Add(strComputername)
+                    'Else
+                    '    oComputerNode = oUserNode.Nodes.Add("<No Computername>")
+                    'End If
+
+                    'oSessionNode = oComputerNode.Nodes.Add("Connected since " & datConnected)
+                    'oSessionNode = oComputerNode.Nodes.Add("Minutes Idle: " & objSession.IdleTime)
+                    'End If
+                    mstrStatus = "OK"
+                Catch
+                End Try
+            Next objSession
+        Catch e As Exception
+            MsgBox(mstrComputername & " could not be contacted.  Verify the computer name is correct and the computer is switched on.", MsgBoxStyle.Exclamation Or MsgBoxStyle.OKOnly, "Problem")
+            mstrStatus = "Error.  Computer could not be contacted."
+        End Try
+
+        Return Sessions
+
+    End Function
+
+    Public Function GetOpenFiles() As OpenFiles()
+        Dim dwIndex, dwStatus, dwReadEntries, dwTotalEntries As Integer
+        Dim pCurrent As FILE_INFO_3
+        Dim iPtr, pBuffer As IntPtr
+
+        dwStatus = NetFileEnum(mstrComputername, Nothing, Nothing, 3, pBuffer, MAX_PREFERRED_LENGTH, dwReadEntries, dwTotalEntries, Nothing)
+        'Console.WriteLine(dwStatus & ", " & dwReadEntries & ", " & dwTotalEntries)
+
+        Dim ConnectionInfo(dwReadEntries - 1) As OpenFiles
+
+        For dwIndex = 0 To dwReadEntries - 1
+
+            iPtr = New IntPtr(pBuffer.ToInt32 + (dwIndex * Len(pCurrent)))
+            pCurrent = CType(Marshal.PtrToStructure(iPtr, GetType(FILE_INFO_3)), FILE_INFO_3)
+
+            ConnectionInfo(dwIndex).strPath = pCurrent.fi3_pathname
+            If pCurrent.fi3_username <> "" Then
+                ConnectionInfo(dwIndex).strUsername = UCase(pCurrent.fi3_username)
+            Else
+                ConnectionInfo(dwIndex).strUsername = "REDACTED"
+            End If
+
+            'Console.WriteLine("dwIndex=" & dwIndex)
+            'Console.WriteLine("   id: " & pCurrent.fi3_id)
+            'Console.WriteLine("   num_locks: " & pCurrent.fi3_num_locks)
+            'Console.WriteLine("   pathname: " & pCurrent.fi3_pathname)
+            'Console.WriteLine("   permission: " & pCurrent.fi3_permission)
+            'Console.WriteLine("   username: " & pCurrent.fi3_username)
+        Next
+
+        Return ConnectionInfo
+    End Function
+
+End Class
