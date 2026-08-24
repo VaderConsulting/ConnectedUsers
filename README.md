@@ -1,11 +1,25 @@
 # ConnectedUsers
 
-Legacy VB.NET Visual Studio project.
+VB.NET Visual Studio project from the Historical Dev archive. This is a historical working copy from Dave Robinson / VaderConsulting, published so the project can be found and understood from GitHub.
 
-## Contents
+**Source last updated:** 2004-08-17  
+**Language:** VB.NET  
+**Target:** not recorded  
+**Output:** see projects
 
-- `ConnectedUsers.sln`
-- `ConnectedUsers.vbproj` — project at solution root
+## What it is
+
+VB.NET Visual Studio project from the Historical Dev archive. This is a historical working copy from Dave Robinson / VaderConsulting, published so the project can be found and understood from GitHub.
+
+## Solution structure
+
+| Project | Language | Path |
+|---------|----------|------|
+| `ConnectedUsers` | VB.NET | `ConnectedUsers.vbproj` |
+
+## How to open
+
+Open `ConnectedUsers.sln` in Visual Studio.
 
 ## Attribution and provenance
 
