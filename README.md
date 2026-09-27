@@ -1,6 +1,6 @@
 # ConnectedUsers
 
-VB.NET Visual Studio project from the Historical Dev archive. This is a historical working copy from Dave Robinson / VaderConsulting, published so the project can be found and understood from GitHub.
+VB.NET Visual Studio project from the Historical Dev archive. Working copy from my Historical Dev folder.
 
 **Source last updated:** 2004-08-17  
 **Language:** VB.NET  
@@ -9,7 +9,7 @@ VB.NET Visual Studio project from the Historical Dev archive. This is a historic
 
 ## What it is
 
-VB.NET Visual Studio project from the Historical Dev archive. This is a historical working copy from Dave Robinson / VaderConsulting, published so the project can be found and understood from GitHub.
+VB.NET Visual Studio project from the Historical Dev archive. Working copy from my Historical Dev folder.
 
 ## Solution structure
 
